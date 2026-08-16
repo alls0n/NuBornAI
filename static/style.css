@@ -30,7 +30,7 @@ body {
   height: 100vh;
 }
 
-/* Sidebar */
+/* sidebar */
 
 .sidebar {
   background: #eeeeee;
@@ -114,7 +114,7 @@ body {
   cursor: pointer;
 }
 
-/* Main chat */
+/* chat */
 
 .chat-panel {
   display: flex;
@@ -223,7 +223,7 @@ body {
   color: #b00020;
 }
 
-/* Composer */
+/* composer */
 
 .composer {
   display: flex;

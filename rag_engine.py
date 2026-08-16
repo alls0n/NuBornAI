@@ -1,10 +1,7 @@
-# rag_engine.py — the notebook's logic (parsing, chunking, indexing,
-# hybrid search, QA pipeline), refactored into a reusable engine class.
-# No behavior changes from the notebook version, just no ipywidgets / prints.
+
 
 import pickle
 import re
-import textwrap
 from pathlib import Path
 
 import numpy as np
@@ -16,10 +13,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 import config
 
 
-# ---------------------------------------------------------------------------
-# Parsing + chunking
-# ---------------------------------------------------------------------------
-
+#parsing
 def _chunk_text(all_text):
     paragraphs = [p.strip() for p in re.split(r"\n{2,}", all_text) if p.strip()]
     records, words_buf = [], []
@@ -45,59 +39,14 @@ def parse_pdf(path):
     return _chunk_text("\n\n".join(full_text))
 
 
-def parse_docx(path):
-    from docx import Document
-    doc = Document(path)
-    text = "\n\n".join(p.text.strip() for p in doc.paragraphs if p.text.strip())
-    return _chunk_text(text)
-
-
-def parse_txt(path):
-    text = Path(path).read_text(encoding="utf-8", errors="replace")
-    return _chunk_text(text)
-
-
-def parse_html_file(path):
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(Path(path).read_text(encoding="utf-8"), "html.parser")
-    for tag in soup(["script", "style", "nav", "footer", "header"]):
-        tag.decompose()
-    return _chunk_text(soup.get_text(separator="\n\n"))
-
-
-def parse_url(url):
-    import requests
-    from bs4 import BeautifulSoup
-    resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    for tag in soup(["script", "style", "nav", "footer", "header"]):
-        tag.decompose()
-    return _chunk_text(soup.get_text(separator="\n\n"))
-
-
 def load_source(source):
-    if source.startswith("http://") or source.startswith("https://"):
-        return parse_url(source), source
     ext = Path(source).suffix.lower()
-    dispatch = {
-        ".pdf": parse_pdf,
-        ".docx": parse_docx,
-        ".doc": parse_docx,
-        ".txt": parse_txt,
-        ".md": parse_txt,
-        ".html": parse_html_file,
-        ".htm": parse_html_file,
-    }
-    parser = dispatch.get(ext)
-    if parser is None:
-        raise ValueError(f"Unsupported file type: {ext}")
-    return parser(source), Path(source).name
+    if ext != ".pdf":
+        raise ValueError(f"Unsupported file type: {ext} (only .pdf is supported)")
+    return parse_pdf(source), Path(source).name
 
 
-# ---------------------------------------------------------------------------
-# Engine
-# ---------------------------------------------------------------------------
+#main engine
 
 class RagEngine:
     """Wraps the notebook's index-building, hybrid search, and QA pipeline
@@ -118,7 +67,7 @@ class RagEngine:
         self.status_log.append(msg)
 
     def initialize(self):
-        """Build (or load) the FAISS index + BM25. Call once at startup."""
+        #build or load faiss index 
         try:
             Path(config.INDEX_PATH).parent.mkdir(parents=True, exist_ok=True)
             self.embedder = SentenceTransformer(config.EMBED_MODEL)
@@ -142,7 +91,7 @@ class RagEngine:
                 self.chunks = []
 
                 for source in config.SOURCES:
-                    if not Path(source).exists() and not source.startswith("http"):
+                    if not Path(source).exists():
                         self._log(f"Skipping (not found): {source}")
                         continue
                     self._log(f"Loading: {source}")
@@ -173,7 +122,7 @@ class RagEngine:
             raise
 
     def sources_summary(self):
-        """Distinct source documents currently indexed, with chunk counts."""
+        #sources indexed with chunk counts 
         counts = {}
         for c in self.chunks:
             counts[c["source"]] = counts.get(c["source"], 0) + 1
@@ -198,8 +147,7 @@ class RagEngine:
         ]
 
     def _hybrid_rrf(self, query, pool_k):
-        """Dense + BM25 fused with reciprocal rank fusion. Returns candidate
-        chunk indices ranked by fused score, without slicing to top_k yet."""
+        #rrf 
         candidate_k = pool_k * 3
         q_emb = self.embedder.encode([query], normalize_embeddings=True).astype("float32")
         dense_scores, dense_ids = self.index.search(q_emb, candidate_k)
@@ -232,10 +180,7 @@ class RagEngine:
         return candidates[:top_k]
 
     def search(self, query, top_k=None, mode=None):
-        """mode: 'dense' | 'bm25' | 'hybrid' | 'hybrid_rerank'.
-        Defaults to hybrid_rerank if a reranker is loaded, else hybrid.
-        Kept as separate modes (rather than always fusing everything) so the
-        eval harness can run an apples-to-apples ablation across pipelines."""
+        #default mode is hybrid rerank 
         top_k = top_k or config.TOP_K
         if mode is None:
             mode = "hybrid_rerank" if (config.USE_RERANKER and self.reranker is not None) else "hybrid"
@@ -282,4 +227,4 @@ class RagEngine:
         self.conversation_history = []
 
 
-engine = RagEngine()
+engine = RagEngine() 

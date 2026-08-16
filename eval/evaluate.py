@@ -1,15 +1,4 @@
-# eval/evaluate.py — retrieval-quality ablation study.
-#
-# Compares four retrieval pipelines against a labeled question set:
-#   dense          — embedding similarity only (FAISS)
-#   bm25           — keyword search only
-#   hybrid         — dense + bm25 fused with reciprocal rank fusion
-#   hybrid_rerank  — hybrid pool re-scored by a cross-encoder
-#
-# This only calls engine.search() — it never touches ollama / engine.ask(),
-# so it measures the retriever in isolation, with no LLM in the loop.
-#
-# Usage:
+
 #   python eval/evaluate.py
 #   python eval/evaluate.py --k 10
 #   python eval/evaluate.py --set eval/eval_set.json --out eval/results.csv
@@ -20,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo root
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  
 
 import config
 from rag_engine import engine
@@ -39,8 +28,6 @@ def load_eval_set(path):
 
 
 def retrieved_sources(results):
-    """Dedup chunk-level results into an ordered list of source names,
-    keeping the rank of each source's first (best) occurrence."""
     seen = []
     for r in results:
         if r["source"] not in seen:
@@ -68,7 +55,6 @@ def run(eval_set_path, k, out_path):
         for q in queries:
             question = q["question"]
             relevant = q["relevant_sources"]
-            # Retrieve a generous pool so dedup-by-source doesn't starve k.
             results = engine.search(question, top_k=max(k * 3, config.RERANK_POOL), mode=mode)
             ranked_sources = retrieved_sources(results)
             scores = score_query(ranked_sources, relevant, k)
@@ -77,7 +63,7 @@ def run(eval_set_path, k, out_path):
 
         mode_results[mode] = average_scores(per_query)
 
-    # Print comparison table
+    # comparison 
     header = f"{'mode':<16}{'precision@k':>13}{'recall@k':>11}{'mrr':>9}{'ndcg@k':>9}"
     print(header)
     print("-" * len(header))

@@ -1,5 +1,5 @@
 {
-  "notes": "Fill this in with questions about YOUR indexed documents. 'relevant_sources' must exactly match filenames as they appear in config.SOURCES (e.g. 'newbornnotes.pdf'). Aim for 20-30 questions covering a mix of topics for a meaningful average. A question can have more than one relevant source if multiple documents cover it.",
+  "notes": "question eval set along with their source documents",
   "queries": [
     {
       "question": "How many wet diapers should a newborn have each day?",

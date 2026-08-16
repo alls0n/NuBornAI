@@ -1,13 +1,9 @@
-# eval/metrics.py — standard information-retrieval metrics, computed purely
-# from which source documents got retrieved vs. which were labeled relevant.
-# No LLM calls anywhere in here — this measures the retriever, not the generator.
+
 
 import math
 
 
 def precision_at_k(retrieved, relevant, k):
-    """retrieved: ordered list of source names (already deduped by first
-    occurrence). relevant: set of source names labeled relevant."""
     top = retrieved[:k]
     if not top:
         return 0.0
@@ -31,7 +27,6 @@ def reciprocal_rank(retrieved, relevant, k):
 
 
 def ndcg_at_k(retrieved, relevant, k):
-    """Binary relevance nDCG@k."""
     top = retrieved[:k]
     dcg = sum(
         (1.0 if s in relevant else 0.0) / math.log2(rank + 1)
